@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Sample code</title>
+        <script src="lib/jquery.min.js"></script>
+        <script src="lib/isomer.min.js"></script>
+        <script src="lib/pixi.js"></script>
+        <script src="plugin/pixi-filters.js"></script>
+        <script src="lib/victor.min.js"></script>
+        <style>
+            html, body {
+                /* overflow: hidden; */
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #canvasZone canvas {
+                /* max-width: 1440px ; */
+                /* width: 100%; */
+                width: 974px;
+                height: 548px;
+                touch-action: none;
+            }
+            
+            #controls {
+                position: absolute;
+                top: 0;
+                left: 0;
+                z-index: 1;
+                user-select: none;
+                -moz-user-select: none;
+                -webkit-user-select: none;
+                -webkit-touch-callout: none;
+            }
+            #hidden {
+                display: none;
+            }
+        </style>
+    </head>
+<body>
+    <div id="hidden">
+        <canvas id="background-buffer" width="2000" height="1000"></canvas>
+    </div>    
+    <div id="canvasZone">
+        
+    </div>
+    <div id="controls">
+        
+    </div>
+    <script type="module" src="src/main.js"></script>
+    
+</body>
+</html>
