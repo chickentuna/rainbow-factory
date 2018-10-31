@@ -2,7 +2,23 @@ import { frontFirst, backFirst } from './utils.js';
 import { WIDTH, HEIGHT } from './constants.js';
 import { getMousePos } from './mouse.js';
 
-const data = [{ x: 0, y: 0, z: 0 }];
+const urlParams = new URLSearchParams(window.location.search);
+let scale = urlParams.get('scale')
+let clear = urlParams.has('clear')
+let rotation = +urlParams.get('rotation') || 0
+
+if (clear) {
+	delete localStorage.data
+}
+
+let data;
+if (localStorage.data) {
+	data = JSON.parse(localStorage.data);
+} else {
+	data = [{ x: 0, y: 0, z: 0 }];
+}
+
+
 let dataSet = {};
 computeDataSet();
 
@@ -11,7 +27,7 @@ function computeDataSet() {
 		let key = getKey(b);
 		return { ...a, [key]: b }
 	}, {});
-	console.log(dataSet)
+	localStorage.data = JSON.stringify(data)
 }
 let hover = null;
 
@@ -40,18 +56,32 @@ const Prism = Shape.Prism;
 const Color = Isomer.Color;
 const Vector = Isomer.Vector;
 
+// TODO: normalize map (1 cube should be 0,0,0)
+
+const constructionMatrix = [
+	[-1, 1, 1, -1],
+	[-1, -1, 1, 1],
+	[1, 1, 1, 1]
+];
+
 function mouseClickLeft() {
 	if (hover) {
-		let dx = 0
-		let dy = 0
-		let dz = 0
-		if (hover.face === 'right') {
-			dy = -1
-		} else if (hover.face === 'left') {
-			dx = -1
-		} else {
-			dz = 1
-		}
+		let dx = {
+			right: [0, 1, 1, -1],
+			left: [-1, 0, 0, 0],
+			top: [0, 0, 0, 0]
+		}[hover.face][rotation];
+		let dy = {
+			right: [-1, 0, 0, 0],
+			left: [0, -1, 1, 1],
+			top: [0, 0, 0, 0]
+		}[hover.face][rotation];
+		let dz = {
+			right: [0, 0, 0, 0],
+			left: [0, 0, 0, 0],
+			top: [1, 1, 1, 1]
+		}[hover.face][rotation];
+
 		let newCube = {
 			x: hover.cube.x + dx,
 			y: hover.cube.y + dy,
@@ -77,25 +107,28 @@ function mouseClickRight() {
 
 function mouseMove(x, y) {
 	const touched = []
+	const maxHeight = CUBE_HEIGHT * 3 / 4
+	const midHeight = CUBE_HEIGHT * 1 / 2
+
 	for (let cube of data) {
 		let origin = cube.origin
 		if (!origin) {
 			continue
 		}
-		if (y < origin.y && y >= origin.y - CUBE_HEIGHT / 2) {
+		if (y < origin.y && y >= origin.y - midHeight) {
 			if (x >= origin.x - CUBE_WIDTH / 2 && x < origin.x) {
 				touched.push({ face: 'left', cube })
 			} else if (x >= origin.x && x < origin.x + CUBE_WIDTH / 2) {
 				touched.push({ face: 'right', cube })
 			}
-		} else if (y < origin.y - CUBE_HEIGHT / 2 && y >= origin.y - CUBE_HEIGHT
+		} else if (y < origin.y - midHeight && y >= origin.y - maxHeight
 			&& x >= origin.x - CUBE_WIDTH / 2 && x < origin.x + CUBE_WIDTH / 2) {
 			touched.push({ face: 'top', cube })
 		}
 	}
 
 	if (touched.length) {
-		touched.sort((a, b) => frontFirst(a.cube, b.cube))
+		touched.sort((a, b) => frontFirst(transform(a.cube), transform(b.cube)))
 		hover = touched[0]
 	} else {
 		hover = null
@@ -104,7 +137,7 @@ function mouseMove(x, y) {
 }
 
 const iso = new Isomer(canvas, {
-	scale: 20,
+	scale: scale || 20,
 	originX: WIDTH / 2,
 	originY: HEIGHT / 2,
 	lightPosition: new Vector(2, -1, 3)
@@ -113,18 +146,56 @@ const iso = new Isomer(canvas, {
 const CUBE_HEIGHT = 40 * iso.scale / 20
 const CUBE_WIDTH = 36 * iso.scale / 20
 
+
+function transform({ x, y, z }) {
+	if (rotation === 0) {
+		return { x, y, z };
+	} else if (rotation === 1) {
+		return {
+			x: y,
+			y: -x,
+			z: z
+		};
+	} else if (rotation === 2) {
+		return {
+			x: -y,
+			y: -x,
+			z: z
+		};
+	} else if (rotation === 3) {
+		return {
+			x: -y,
+			y: x,
+			z: z
+		};
+	}
+}
+
+function hoveringOver(cube) {
+	if (hover) {
+		for (let key of 'xyz') {
+			if (hover.cube[key] !== cube[key]) {
+				return false;
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
 function redraw() {
 	const context = canvas.getContext('2d');
 	context.clearRect(0, 0, canvas.width, canvas.height);
 
-	for (let d of data) {
-		iso.add(Prism(Point(d.x, d.y, d.z)), new Color(120, 120, 120))
+	for (let d of data.sort((a, b) => backFirst(transform(a), transform(b)))) {
+		let cube = transform(d)
+		iso.add(Prism(Point(cube.x, cube.y, cube.z)), new Color(120, 120, 120))
 
-		if (d === (hover && hover.cube)) {
+		if (hoveringOver(d)) {
 			let color = new Color(255, 0, 0);
-			let x = hover.cube.x
-			let y = hover.cube.y
-			let z = hover.cube.z
+			let x = cube.x
+			let y = cube.y
+			let z = cube.z
 
 			if (hover.face === 'right') {
 				iso.add(new Path([
@@ -150,13 +221,22 @@ function redraw() {
 			}
 		}
 
-		let cubeOrigin = iso._translatePoint(d)
+		let cubeOrigin = iso._translatePoint(cube)
 		d.origin = cubeOrigin
 	}
 }
 
+// var app = new PIXI.Application({
+// 	width: WIDTH,
+// 	height: HEIGHT,
+// 	transparent: false,
+// 	resolution: 1,
+// 	backgroundColor: 0xBAAB88
+// });
+
 function animate() {
 	redraw()
+	// app.render()
 	setTimeout(() => requestAnimationFrame(animate), 30)
 }
 requestAnimationFrame(animate);
