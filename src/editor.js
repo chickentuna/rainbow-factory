@@ -1,6 +1,14 @@
 import { frontFirst, backFirst } from './utils.js';
 import { WIDTH, HEIGHT } from './constants.js';
 import { getMousePos } from './mouse.js';
+import { initControls } from './editor-controls.js'
+
+const Point = Isomer.Point;
+const Shape = Isomer.Shape
+const Path = Isomer.Path;
+const Prism = Shape.Prism;
+const Color = Isomer.Color;
+const Vector = Isomer.Vector;
 
 const urlParams = new URLSearchParams(window.location.search);
 let scale = urlParams.get('scale')
@@ -10,29 +18,34 @@ let rotation = +urlParams.get('rotation') || 0
 if (clear) {
 	delete localStorage.data
 }
-
+let prevX = 0, prevY = 0
 let data;
 if (localStorage.data) {
 	data = JSON.parse(localStorage.data);
 } else {
 	data = [{ x: 0, y: 0, z: 0 }];
 }
+const origins = {}
 
-
-let dataSet = {};
-computeDataSet();
-
-function computeDataSet() {
-	dataSet = data.reduce((a, b) => {
-		let key = getKey(b);
-		return { ...a, [key]: b }
-	}, {});
-	localStorage.data = JSON.stringify(data)
-}
 let hover = null;
+let dataSet = {};
+
 
 let canvasSelector = $('#canvasZone').append('<canvas width="' + WIDTH + '" height="' + HEIGHT + '"></canvas>');
-const canvas = canvasSelector.find('canvas')[0];
+let canvas = canvasSelector.find('canvas')[0];
+
+
+
+const iso = new Isomer(canvas, {
+	scale: scale || 20,
+	originX: WIDTH / 2,
+	originY: HEIGHT / 2,
+	lightPosition: new Vector(2, -1, 3)
+});
+
+const CUBE_HEIGHT = 40 * iso.scale / 20
+const CUBE_WIDTH = 36 * iso.scale / 20
+
 canvas.addEventListener('contextmenu', (e) => {
 	mouseClickRight();
 	e.preventDefault();
@@ -45,16 +58,39 @@ canvas.addEventListener('click', function (evt) {
 	mouseClickLeft();
 })
 
+computeDataSet();
 function getKey(cube) {
 	return cube.x + ' ' + cube.y + ' ' + cube.z;
 }
 
-const Point = Isomer.Point;
-const Shape = Isomer.Shape
-const Path = Isomer.Path;
-const Prism = Shape.Prism;
-const Color = Isomer.Color;
-const Vector = Isomer.Vector;
+function computeDataSet() {
+	let max = {}
+	let min = {}
+	for (let cube of data) {
+		for (let key of 'xyz') {
+			if (min[key] == null || min[key] > cube[key]) {
+				min[key] = cube[key]
+			}
+			if (max[key] == null || max[key] < cube[key]) {
+				max[key] = cube[key]
+			}
+		}
+	}
+	for (let key of 'xyz') {
+		let move = -Math.floor((max[key] + min[key]) / 2)
+		for (let cube of data) {
+			cube[key] += move
+		}
+	}
+
+	dataSet = data.reduce((a, b) => {
+		let key = getKey(b);
+		return { ...a, [key]: b }
+	}, {});
+	localStorage.data = JSON.stringify(data)
+	mouseMove()
+}
+
 
 // TODO: normalize map (1 cube should be 0,0,0)
 
@@ -105,13 +141,16 @@ function mouseClickRight() {
 	}
 }
 
-function mouseMove(x, y) {
+
+
+
+function mouseMove(x = prevX, y = prevY) {
 	const touched = []
 	const maxHeight = CUBE_HEIGHT * 3 / 4
 	const midHeight = CUBE_HEIGHT * 1 / 2
 
 	for (let cube of data) {
-		let origin = cube.origin
+		let origin = origins[getKey(cube)]
 		if (!origin) {
 			continue
 		}
@@ -133,18 +172,9 @@ function mouseMove(x, y) {
 	} else {
 		hover = null
 	}
-
+	prevX = x
+	prevY = y
 }
-
-const iso = new Isomer(canvas, {
-	scale: scale || 20,
-	originX: WIDTH / 2,
-	originY: HEIGHT / 2,
-	lightPosition: new Vector(2, -1, 3)
-});
-
-const CUBE_HEIGHT = 40 * iso.scale / 20
-const CUBE_WIDTH = 36 * iso.scale / 20
 
 
 function transform({ x, y, z }) {
@@ -158,8 +188,8 @@ function transform({ x, y, z }) {
 		};
 	} else if (rotation === 2) {
 		return {
-			x: -y,
-			y: -x,
+			x: -x,
+			y: -y,
 			z: z
 		};
 	} else if (rotation === 3) {
@@ -222,17 +252,9 @@ function redraw() {
 		}
 
 		let cubeOrigin = iso._translatePoint(cube)
-		d.origin = cubeOrigin
+		origins[getKey(d)] = cubeOrigin
 	}
 }
-
-// var app = new PIXI.Application({
-// 	width: WIDTH,
-// 	height: HEIGHT,
-// 	transparent: false,
-// 	resolution: 1,
-// 	backgroundColor: 0xBAAB88
-// });
 
 function animate() {
 	redraw()
@@ -240,3 +262,15 @@ function animate() {
 	setTimeout(() => requestAnimationFrame(animate), 30)
 }
 requestAnimationFrame(animate);
+
+export function getData() {
+	return data;
+}
+export function getRotation() {
+	return rotation;
+}
+export function setRotation(value) {
+	rotation = value
+}
+
+initControls();
