@@ -29,6 +29,7 @@ const origins = {}
 
 let hover = null;
 let dataSet = {};
+let flip = false;
 
 
 let canvasSelector = $('#canvasZone').append('<canvas width="' + WIDTH + '" height="' + HEIGHT + '"></canvas>');
@@ -91,15 +92,6 @@ function computeDataSet() {
 	mouseMove()
 }
 
-
-// TODO: normalize map (1 cube should be 0,0,0)
-
-const constructionMatrix = [
-	[-1, 1, 1, -1],
-	[-1, -1, 1, 1],
-	[1, 1, 1, 1]
-];
-
 function mouseClickLeft() {
 	if (hover) {
 		let dx = {
@@ -121,7 +113,7 @@ function mouseClickLeft() {
 		let newCube = {
 			x: hover.cube.x + dx,
 			y: hover.cube.y + dy,
-			z: hover.cube.z + dz
+			z: hover.cube.z + dz * (flip ? -1 : 1)
 		};
 
 		if (!dataSet[getKey(newCube)]) {
@@ -178,27 +170,19 @@ function mouseMove(x = prevX, y = prevY) {
 
 
 function transform({ x, y, z }) {
-	if (rotation === 0) {
-		return { x, y, z };
-	} else if (rotation === 1) {
-		return {
-			x: y,
-			y: -x,
-			z: z
-		};
+	let result = { x, y, z };
+	if (rotation === 1) {
+		result.x = y;
+		result.y = -x;
 	} else if (rotation === 2) {
-		return {
-			x: -x,
-			y: -y,
-			z: z
-		};
+		result.x = -x;
+		result.y = -y;
 	} else if (rotation === 3) {
-		return {
-			x: -y,
-			y: x,
-			z: z
-		};
+		result.x = -y;
+		result.y = x;
 	}
+	result.z = flip ? -z : z;
+	return result;
 }
 
 function hoveringOver(cube) {
@@ -271,6 +255,16 @@ export function getRotation() {
 }
 export function setRotation(value) {
 	rotation = value
+}
+export function setData(value) {
+	data = value
+	computeDataSet()
+}
+export function toggleFlip() {
+	flip = !flip
+}
+export function setFlip(value) {
+	flip = value
 }
 
 initControls();
