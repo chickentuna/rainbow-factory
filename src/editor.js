@@ -5,6 +5,7 @@ import { initControls } from './editor-controls.js'
 import { Cube, Source } from './model/Cube.js'
 import { Vector, Point, Prism, Path, Color } from './Isomer.js'
 import { House } from './view/House.js'
+import { mountainPastel as palette } from './view/colour.js'
 
 /* global requestAnimationFrame window localStorage Isomer $ */
 
@@ -195,12 +196,14 @@ function redraw () {
   for (let d of data.sort((a, b) => backFirst(transform(a), transform(b)))) {
     let cube = transform(d)
     let shape = Prism
+    let color = palette[1]
     if (d.building && d.building.type === 'source') {
       shape = House
+      color = palette[0]
     }
     const rotationZ = (spin ? Date.now() / 600 : 0) + (rotation % 2 === 1 ? Math.PI / 2 : 0)
     iso.add(shape(Point(cube.x, cube.y, cube.z))
-      .rotateZ(Point(cube.x + 0.5, cube.y + 0.5, cube.z), rotationZ), new Color(120, 120, 120))
+      .rotateZ(Point(cube.x + 0.5, cube.y + 0.5, cube.z), rotationZ), color)
 
     if (hoveringOver(d)) {
       let color = new Color(255, 0, 0)

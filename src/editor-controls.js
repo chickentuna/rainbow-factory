@@ -1,5 +1,6 @@
 import { getData, parse, toggleSpin, setData, getRotation, setRotation, toggleFlip, setFlip } from './editor.js'
-import { Cube, Source} from './model/Cube.js'
+import { Cube, Source } from './model/Cube.js'
+
 /* global FileReader $ */
 
 function downloadObjectAsJson (exportObj, exportName) {
