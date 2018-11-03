@@ -1,5 +1,5 @@
-import { getData, parse, setData, getRotation, setRotation, toggleFlip, setFlip } from './editor.js'
-import { Cube, Source } from './model/Cube.js'
+import { getData, parse, toggleSpin, setData, getRotation, setRotation, toggleFlip, setFlip } from './editor.js'
+import { Cube, Source} from './model/Cube.js'
 /* global FileReader $ */
 
 function downloadObjectAsJson (exportObj, exportName) {
@@ -49,6 +49,9 @@ window.reset = function () {
     [new Cube({ x: 0, y: 0, z: 0, building: new Source() })]
   )
 }
+window.rotate = function () {
+  toggleSpin()
+}
 
 export function initControls () {
   const controls = $('#controls')
@@ -59,4 +62,5 @@ export function initControls () {
   controls.append('<button onclick="resetSpin()">Reset view</button>')
   controls.append('<button onclick="flip()">Flip</button>')
   controls.append('<button onclick="reset()">Clear</button>')
+  controls.append('<button onclick="rotate()">Rotate</button>')
 }

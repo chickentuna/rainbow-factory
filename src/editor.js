@@ -28,7 +28,7 @@ const origins = {}
 let hover = null
 let dataSet = {}
 let flip = false
-
+let spin = false
 let canvasSelector = $('#canvasZone').append('<canvas width="' + WIDTH + '" height="' + HEIGHT + '"></canvas>')
 let canvas = canvasSelector.find('canvas')[0]
 
@@ -198,8 +198,9 @@ function redraw () {
     if (d.building && d.building.type === 'source') {
       shape = House
     }
+    const rotationZ = (spin ? Date.now() / 600 : 0) + (rotation % 2 === 1 ? Math.PI / 2 : 0)
     iso.add(shape(Point(cube.x, cube.y, cube.z))
-      .rotateZ(Point(0, 0, 0), rotation % 2 === 1 ? Math.PI / 2 : 0), new Color(120, 120, 120))
+      .rotateZ(Point(cube.x + 0.5, cube.y + 0.5, cube.z), rotationZ), new Color(120, 120, 120))
 
     if (hoveringOver(d)) {
       let color = new Color(255, 0, 0)
@@ -271,6 +272,9 @@ export function toggleFlip () {
 }
 export function setFlip (value) {
   flip = value
+}
+export function toggleSpin () {
+  spin = !spin
 }
 
 initControls()
