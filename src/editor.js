@@ -2,16 +2,11 @@ import { frontFirst, backFirst } from './utils.js'
 import { WIDTH, HEIGHT } from './constants.js'
 import { getMousePos } from './mouse.js'
 import { initControls } from './editor-controls.js'
-import { Cube } from './model/Cube.js'
+import { Cube, Source } from './model/Cube.js'
+import { Vector, Point, Prism, Path, Color } from './Isomer.js'
+import { House } from './view/House.js'
 
-/* global Isomer window localStorage $ */
-
-const Point = Isomer.Point
-const Shape = Isomer.Shape
-const Path = Isomer.Path
-const Prism = Shape.Prism
-const Color = Isomer.Color
-const Vector = Isomer.Vector
+/* global requestAnimationFrame window localStorage Isomer $ */
 
 const urlParams = new URLSearchParams(window.location.search)
 let scale = urlParams.get('scale')
@@ -24,9 +19,9 @@ if (clear) {
 let prevX = 0; let prevY = 0
 let data
 if (localStorage.data) {
-  data = JSON.parse(localStorage.data)
+  data = parse(localStorage.data)
 } else {
-  data = [Cube({ x: 0, y: 0, z: 0 })]
+  data = [new Cube({ x: 0, y: 0, z: 0, building: new Source() })]
 }
 const origins = {}
 
@@ -60,6 +55,7 @@ canvas.addEventListener('click', function (evt) {
 })
 
 computeDataSet()
+
 function getKey (cube) {
   return cube.x + ' ' + cube.y + ' ' + cube.z
 }
@@ -89,19 +85,18 @@ function computeDataSet () {
     return { ...a, [key]: b }
   }, {})
   localStorage.data = JSON.stringify(data)
-  mouseMove()
 }
 
 function mouseClickLeft () {
   if (hover) {
     let dx = {
-      right: [0, 1, 1, -1],
-      left: [-1, 0, 0, 0],
+      right: [0, 1, 0, -1],
+      left: [-1, 0, 1, 0],
       top: [0, 0, 0, 0]
     }[hover.face][rotation]
     let dy = {
-      right: [-1, 0, 0, 0],
-      left: [0, -1, 1, 1],
+      right: [-1, 0, 1, 0],
+      left: [0, -1, 0, 1],
       top: [0, 0, 0, 0]
     }[hover.face][rotation]
     let dz = {
@@ -110,11 +105,11 @@ function mouseClickLeft () {
       top: [1, 1, 1, 1]
     }[hover.face][rotation]
 
-    let newCube = {
+    let newCube = new Cube({
       x: hover.cube.x + dx,
       y: hover.cube.y + dy,
       z: hover.cube.z + dz * (flip ? -1 : 1)
-    }
+    })
 
     if (!dataSet[getKey(newCube)]) {
       data.push(newCube)
@@ -199,7 +194,12 @@ function redraw () {
 
   for (let d of data.sort((a, b) => backFirst(transform(a), transform(b)))) {
     let cube = transform(d)
-    iso.add(Prism(Point(cube.x, cube.y, cube.z)), new Color(120, 120, 120))
+    let shape = Prism
+    if (d.building && d.building.type === 'source') {
+      shape = House
+    }
+    iso.add(shape(Point(cube.x, cube.y, cube.z))
+      .rotateZ(Point(0, 0, 0), rotation % 2 === 1 ? Math.PI / 2 : 0), new Color(120, 120, 120))
 
     if (hoveringOver(d)) {
       let color = new Color(255, 0, 0)
@@ -234,14 +234,24 @@ function redraw () {
     let cubeOrigin = iso._translatePoint(cube)
     origins[getKey(d)] = cubeOrigin
   }
+  mouseMove()
 }
 
 function animate () {
   redraw()
   // app.render()
-  setTimeout(() => window.requestAnimationFrame(animate), 30)
+  setTimeout(() => requestAnimationFrame(animate), 30)
 }
-window.requestAnimationFrame(animate)
+requestAnimationFrame(animate)
+
+export function parse (json) {
+  const result = []
+  let array = JSON.parse(json)
+  for (let cube of array) {
+    result.push(new Cube(cube))
+  }
+  return result
+}
 
 export function getData () {
   return data

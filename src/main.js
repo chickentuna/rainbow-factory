@@ -21,11 +21,11 @@ initTextures()
 var layer = new PIXI.Container()
 // var game = new Game(layer)
 app.stage.addChild(layer)
-var time = Date.now()
+// var time = Date.now()
 
 function animate () {
 //   let delta = Date.now() - time
-  time = Date.now()
+//   time = Date.now()
 
   app.render()
   requestAnimationFrame(animate)
