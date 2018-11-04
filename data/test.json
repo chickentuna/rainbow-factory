@@ -1,0 +1,16 @@
+[
+    {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "building": {
+            "type": "source",
+            "direction": "SE",
+            "color": {
+                "r": 255,
+                "g": 0,
+                "b": 0
+            }
+        }
+    }
+]
