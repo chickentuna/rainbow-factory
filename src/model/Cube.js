@@ -15,9 +15,9 @@ export class Cube {
 }
 
 export class Source {
-  constructor () {
-    this.direction = Direction.SE
-    this.color = new Color(0xFF, 0, 0)
+  constructor (direction = Direction.SE, color) {
+    this.direction = direction
+    this.color = color
     this.type = 'source'
   }
 }

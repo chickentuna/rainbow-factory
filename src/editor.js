@@ -6,6 +6,9 @@ import { Cube, Source } from './model/Cube.js'
 import { Vector, Point, Prism, Path, Color } from './Isomer.js'
 import { House } from './view/House.js'
 import { mountainPastel as palette } from './view/colour.js'
+import * as Direction from './model/directions.js'
+
+// TODO: an import for types in model/
 
 /* global requestAnimationFrame window localStorage Isomer $ */
 
@@ -13,6 +16,11 @@ const urlParams = new URLSearchParams(window.location.search)
 let scale = urlParams.get('scale')
 let clear = urlParams.has('clear')
 let rotation = +urlParams.get('rotation') || 0
+let selected = {
+  type: 'block',
+  color: palette[1],
+  direction: Direction.SE
+}
 
 if (clear) {
   delete localStorage.data
@@ -111,6 +119,9 @@ function mouseClickLeft () {
       y: hover.cube.y + dy,
       z: hover.cube.z + dz * (flip ? -1 : 1)
     })
+    if (selected.type === 'source') {
+      newCube.building = new Source(selected.direction, selected.color)
+    }
 
     if (!dataSet[getKey(newCube)]) {
       data.push(newCube)
@@ -197,13 +208,21 @@ function redraw () {
     let cube = transform(d)
     let shape = Prism
     let color = palette[1]
+    let rotationZ = rotation * Math.PI / 2
     if (d.building && d.building.type === 'source') {
       shape = House
       color = palette[0]
+      rotationZ += Direction.toAngle(d.building.direction)
     }
-    const rotationZ = (spin ? Date.now() / 600 : 0) + (rotation % 2 === 1 ? Math.PI / 2 : 0)
-    iso.add(shape(Point(cube.x, cube.y, cube.z))
-      .rotateZ(Point(cube.x + 0.5, cube.y + 0.5, cube.z), rotationZ), color)
+
+    let item = shape(Point(cube.x, cube.y, cube.z))
+      .rotateZ(Point(cube.x + 0.5, cube.y + 0.5, cube.z), rotationZ)
+
+    if (spin) {
+      item = item.rotateZ(Point.ORIGIN, Date.now() / 600)
+    }
+
+    iso.add(item, color)
 
     if (hoveringOver(d)) {
       let color = new Color(255, 0, 0)
@@ -278,6 +297,16 @@ export function setFlip (value) {
 }
 export function toggleSpin () {
   spin = !spin
+}
+
+export function setType (type) {
+  selected.type = type
+}
+export function setDirection (direction) {
+  selected.direction = direction
+}
+export function setColor (color) {
+  selected.color = color
 }
 
 initControls()

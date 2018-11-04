@@ -1,4 +1,4 @@
-import { getData, parse, toggleSpin, setData, getRotation, setRotation, toggleFlip, setFlip } from './editor.js'
+import { getData, parse, setType, setDirection, setColor, toggleSpin, setData, getRotation, setRotation, toggleFlip, setFlip } from './editor.js'
 import { Cube, Source } from './model/Cube.js'
 
 /* global FileReader $ */
@@ -53,6 +53,16 @@ window.reset = function () {
 window.rotate = function () {
   toggleSpin()
 }
+window.select = function (type) {
+  setType(type)
+  $('#selected').text(type)
+}
+
+window.setDirection = function (dir) {
+  setDirection(dir)
+  $('#direction').text(dir)
+}
+window.setColor = setColor
 
 export function initControls () {
   const controls = $('#controls')
@@ -64,4 +74,21 @@ export function initControls () {
   controls.append('<button onclick="flip()">Flip</button>')
   controls.append('<button onclick="reset()">Clear</button>')
   controls.append('<button onclick="rotate()">Rotate</button>')
+  controls.append('<br>')
+  controls.append('selected:&nbsp;')
+  controls.append('<span id="selected">block</span>')
+  controls.append('<br>')
+  controls.append('<button onclick="select(\'block\')">Block</button>')
+  controls.append('<button onclick="select(\'source\')">Source</button>')
+  controls.append('<button onclick="select(\'cloud\')">Cloud</button>')
+  controls.append('<button onclick="select(\'mixer\')">Mixer</button>')
+  controls.append('<button onclick="select(\'wall\')">Wall</button>')
+  controls.append('<button onclick="select(\'tunnel\')">Tunnel</button>')
+  controls.append('<br>')
+  controls.append('direction:&nbsp;')
+  controls.append('<span id="direction">SE</span>&nbsp;')
+  controls.append('<button onclick="setDirection(\'SE\')">SE</button>')
+  controls.append('<button onclick="setDirection(\'NE\')">NE</button>')
+  controls.append('<button onclick="setDirection(\'SW\')">SW</button>')
+  controls.append('<button onclick="setDirection(\'NW\')">NW</button>')
 }
