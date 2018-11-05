@@ -1,5 +1,4 @@
 import * as Direction from './directions.js'
-import { Color } from '../Isomer.js'
 
 export class Cube {
   constructor ({ x, y, z, building = null }) {
