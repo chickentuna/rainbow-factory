@@ -3,17 +3,15 @@ import { WIDTH, HEIGHT } from './constants.js'
 import { getMousePos } from './mouse.js'
 import { initControls } from './editor-controls.js'
 import { Cube, Source } from './model/Cube.js'
-import { Vector, Point, Prism, Path, Color } from './Isomer.js'
-import { House } from './view/House.js'
 import { mountainPastel as palette } from './view/colour.js'
 import * as Direction from './model/directions.js'
 
 // TODO: an import for types in model/
 
-/* global requestAnimationFrame window localStorage Isomer $ */
+/* global requestAnimationFrame window localStorage  obelisk $ */
 
 const urlParams = new URLSearchParams(window.location.search)
-let scale = urlParams.get('scale')
+let scale = +urlParams.get('scale') || 20
 let clear = urlParams.has('clear')
 let rotation = +urlParams.get('rotation') || 0
 let selected = {
@@ -41,15 +39,8 @@ let spin = false
 let canvasSelector = $('#canvasZone').append('<canvas width="' + WIDTH + '" height="' + HEIGHT + '"></canvas>')
 let canvas = canvasSelector.find('canvas')[0]
 
-const iso = new Isomer(canvas, {
-  scale: scale || 20,
-  originX: WIDTH / 2,
-  originY: HEIGHT / 2,
-  lightPosition: new Vector(2, -1, 3)
-})
-
-const CUBE_HEIGHT = 40 * iso.scale / 20
-const CUBE_WIDTH = 36 * iso.scale / 20
+const CUBE_HEIGHT = 40
+const CUBE_WIDTH = 36
 
 canvas.addEventListener('contextmenu', (e) => {
   mouseClickRight()
@@ -200,36 +191,31 @@ function hoveringOver (cube) {
   return false
 }
 
+const point = new obelisk.Point(WIDTH / 2, HEIGHT / 2)
+const pixelView = new obelisk.PixelView(canvas, point)
+
 function redraw () {
   const context = canvas.getContext('2d')
   context.clearRect(0, 0, canvas.width, canvas.height)
 
   for (let d of data.sort((a, b) => backFirst(transform(a), transform(b)))) {
     let cube = transform(d)
-    let shape = Prism
-    let color = palette[1]
-    let rotationZ = rotation * Math.PI / 2
-    if (d.building && d.building.type === 'source') {
-      shape = House
-      color = palette[0]
-      rotationZ += Direction.toAngle(d.building.direction)
-    }
 
-    let item = shape(Point(cube.x, cube.y, cube.z))
-      .rotateZ(Point(cube.x + 0.5, cube.y + 0.5, cube.z), rotationZ)
+    let dimension = new obelisk.CubeDimension(scale, scale, scale)
+    let gray = obelisk.ColorPattern.BLUE
+    let color = new obelisk.CubeColor().getByHorizontalColor(gray)
+    let border = false
 
-    if (spin) {
-      item = item.rotateZ(Point.ORIGIN, Date.now() / 600)
-    }
-
-    iso.add(item, color)
+    var p3d = new obelisk.Point3D(cube.x * (scale - 2), cube.y * (scale - 2), cube.z * (scale - 2))
+    const tile = new obelisk.Cube(dimension, color, border)
+    pixelView.renderObject(tile, p3d)
 
     if (hoveringOver(d)) {
-      let color = new Color(255, 0, 0)
-      let x = cube.x
-      let y = cube.y
-      let z = cube.z
-
+      // let color = new Color(255, 0, 0)
+      // let x = cube.x
+      // let y = cube.y
+      // let z = cube.z
+      /*
       if (hover.face === 'right') {
         iso.add(new Path([
           Point(x + 0, y + 0, z + 0),
@@ -253,11 +239,12 @@ function redraw () {
         ]), color)
       }
     }
-
-    let cubeOrigin = iso._translatePoint(cube)
-    origins[getKey(d)] = cubeOrigin
+*/
+    // let cubeOrigin = iso._translatePoint(cube)
+    // origins[getKey(d)] = cubeOrigin
+    }
+    mouseMove()
   }
-  mouseMove()
 }
 
 function animate () {

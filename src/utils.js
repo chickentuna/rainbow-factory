@@ -10,17 +10,17 @@ export function lerp (a, b, u) {
   return a + (b - a) * u
 }
 
-export function frontFirst (a, b) {
+export function frontFirst (b, a) {
   let diff = a.x - b.x
   if (diff === 0) {
     diff = a.y - b.y
   }
   if (diff === 0) {
-    diff = b.z - a.z
+    diff = a.z - b.z
   }
   return diff
 }
 
-export function backFirst (a, b) {
-  return frontFirst(b, a)
+export function backFirst (b, a) {
+  return frontFirst(a, b)
 }

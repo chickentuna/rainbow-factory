@@ -1,4 +1,4 @@
-import { Shape, Point, Path, Pyramid, Prism } from '../Isomer.js'
+// import { Shape, Point, Path, Pyramid, Prism } from '../Isomer.js'
 
 export function House ({ x, y, z }) {
   const shape = new Shape()
