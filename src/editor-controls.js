@@ -1,4 +1,5 @@
-import { getData, parse, setType, setDirection, setColor, toggleSpin, setData, getRotation, setRotation, toggleFlip, setFlip } from './editor.js'
+import { getData, parse, setType, setDirection, setColor, setData,
+  getRotation, setRotation, toggleFlip, setFlip } from './editor.js'
 import { Cube, Source } from './model/Cube.js'
 
 /* global FileReader $ */
@@ -50,9 +51,6 @@ window.reset = function () {
     [new Cube({ x: 0, y: 0, z: 0, building: new Source() })]
   )
 }
-window.rotate = function () {
-  toggleSpin()
-}
 window.select = function (type) {
   setType(type)
   $('#selected').text(type)
@@ -73,7 +71,6 @@ export function initControls () {
   controls.append('<button onclick="resetSpin()">Reset view</button>')
   controls.append('<button onclick="flip()">Flip</button>')
   controls.append('<button onclick="reset()">Clear</button>')
-  controls.append('<button onclick="rotate()">Rotate</button>')
   controls.append('<br>')
   controls.append('selected:&nbsp;')
   controls.append('<span id="selected">block</span>')

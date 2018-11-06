@@ -3,12 +3,12 @@ import { WIDTH, HEIGHT } from './constants.js'
 import { getMousePos } from './mouse.js'
 import { initControls } from './editor-controls.js'
 import { Cube, Source } from './model/Cube.js'
-import { mountainPastel as palette } from './view/colour.js'
 import * as Direction from './model/directions.js'
+import { drawHouse } from './view/house.js'
 
 // TODO: an import for types in model/
 
-/* global requestAnimationFrame window localStorage  obelisk $ */
+/* global requestAnimationFrame window localStorage obelisk $ */
 
 const urlParams = new URLSearchParams(window.location.search)
 let scale = +urlParams.get('scale') || 20
@@ -16,7 +16,7 @@ let clear = urlParams.has('clear')
 let rotation = +urlParams.get('rotation') || 0
 let selected = {
   type: 'block',
-  color: palette[1],
+  color: 0xFF,
   direction: Direction.SE
 }
 
@@ -35,12 +35,11 @@ const origins = {}
 let hover = null
 let dataSet = {}
 let flip = false
-let spin = false
 let canvasSelector = $('#canvasZone').append('<canvas width="' + WIDTH + '" height="' + HEIGHT + '"></canvas>')
 let canvas = canvasSelector.find('canvas')[0]
 
-const CUBE_HEIGHT = 40
-const CUBE_WIDTH = 36
+const CUBE_HEIGHT = scale * 2 - 1
+const CUBE_WIDTH = scale * 2 - 2
 
 canvas.addEventListener('contextmenu', (e) => {
   mouseClickRight()
@@ -90,13 +89,14 @@ function computeDataSet () {
 function mouseClickLeft () {
   if (hover) {
     let dx = {
-      right: [0, 1, 0, -1],
-      left: [-1, 0, 1, 0],
+      right: [1, 0, -1, 0],
+      left: [0, -1, 0, 1],
       top: [0, 0, 0, 0]
     }[hover.face][rotation]
+
     let dy = {
-      right: [-1, 0, 1, 0],
-      left: [0, -1, 0, 1],
+      right: [0, 1, 0, -1],
+      left: [1, 0, -1, 0],
       top: [0, 0, 0, 0]
     }[hover.face][rotation]
     let dz = {
@@ -141,14 +141,14 @@ function mouseMove (x = prevX, y = prevY) {
     if (!origin) {
       continue
     }
-    if (y < origin.y && y >= origin.y - midHeight) {
-      if (x >= origin.x - CUBE_WIDTH / 2 && x < origin.x) {
+    if (y >= origin.y + midHeight && y < origin.y + CUBE_HEIGHT) {
+      if (x >= origin.x && x < origin.x + CUBE_WIDTH / 2) {
         touched.push({ face: 'left', cube })
-      } else if (x >= origin.x && x < origin.x + CUBE_WIDTH / 2) {
+      } else if (x >= origin.x + CUBE_WIDTH / 2 && x < origin.x + CUBE_WIDTH) {
         touched.push({ face: 'right', cube })
       }
-    } else if (y < origin.y - midHeight && y >= origin.y - maxHeight &&
-      x >= origin.x - CUBE_WIDTH / 2 && x < origin.x + CUBE_WIDTH / 2) {
+    } else if (y >= origin.y + (CUBE_HEIGHT - maxHeight) && y < origin.y + midHeight &&
+      x >= origin.x && x < origin.x + CUBE_WIDTH) {
       touched.push({ face: 'top', cube })
     }
   }
@@ -200,49 +200,45 @@ function redraw () {
 
   for (let d of data.sort((a, b) => backFirst(transform(a), transform(b)))) {
     let cube = transform(d)
-
-    let dimension = new obelisk.CubeDimension(scale, scale, scale)
-    let gray = obelisk.ColorPattern.BLUE
-    let color = new obelisk.CubeColor().getByHorizontalColor(gray)
-    let border = false
-
-    var p3d = new obelisk.Point3D(cube.x * (scale - 2), cube.y * (scale - 2), cube.z * (scale - 2))
-    const tile = new obelisk.Cube(dimension, color, border)
-    pixelView.renderObject(tile, p3d)
-
+    let cubeOrigin
+    if (d.building && d.building.type === 'source') {
+      cubeOrigin = drawHouse(cube,
+        scale,
+        obelisk.ColorPattern.YELLOW,
+        pixelView
+      )
+    } else {
+      let dimension = new obelisk.CubeDimension(scale, scale, scale)
+      let color = new obelisk.CubeColor().getByHorizontalColor(obelisk.ColorPattern.BLUE)
+      let border = false
+      let p3d = new obelisk.Point3D(cube.x * (scale - 2), cube.y * (scale - 2), cube.z * (scale - 2))
+      const tile = new obelisk.Cube(dimension, color, border)
+      cubeOrigin = pixelView.renderObject(tile, p3d)
+    }
     if (hoveringOver(d)) {
-      // let color = new Color(255, 0, 0)
-      // let x = cube.x
-      // let y = cube.y
-      // let z = cube.z
-      /*
+      const red = 0xFF0000
+      let color = new obelisk.SideColor(red, red)
+      let border = false
+
       if (hover.face === 'right') {
-        iso.add(new Path([
-          Point(x + 0, y + 0, z + 0),
-          Point(x + 1, y + 0, z + 0),
-          Point(x + 1, y + 0, z + 1),
-          Point(x + 0, y + 0, z + 1)
-        ]), color)
+        let dimension = new obelisk.SideYDimension(scale, scale)
+        let p3d = new obelisk.Point3D((cube.x + 1) * (scale - 2), cube.y * (scale - 2), cube.z * (scale - 2))
+        let face = new obelisk.SideY(dimension, color, border)
+        pixelView.renderObject(face, p3d)
       } else if (hover.face === 'left') {
-        iso.add(new Path([
-          Point(x + 0, y + 0, z + 0),
-          Point(x + 0, y + 1, z + 0),
-          Point(x + 0, y + 1, z + 1),
-          Point(x + 0, y + 0, z + 1)
-        ]), color)
+        let dimension = new obelisk.SideXDimension(scale, scale)
+        let p3d = new obelisk.Point3D((cube.x) * (scale - 2), (cube.y + 1) * (scale - 2), cube.z * (scale - 2))
+        let face = new obelisk.SideX(dimension, color, border)
+        pixelView.renderObject(face, p3d)
       } else {
-        iso.add(new Path([
-          Point(x + 0, y + 0, z + 1),
-          Point(x + 1, y + 0, z + 1),
-          Point(x + 1, y + 1, z + 1),
-          Point(x + 0, y + 1, z + 1)
-        ]), color)
+        let dimension = new obelisk.BrickDimension(scale, scale)
+        let p3d = new obelisk.Point3D(cube.x * (scale - 2), cube.y * (scale - 2), (cube.z + 1) * (scale - 2) + 2)
+        let face = new obelisk.Brick(dimension, color, border)
+        pixelView.renderObject(face, p3d)
       }
     }
-*/
-    // let cubeOrigin = iso._translatePoint(cube)
-    // origins[getKey(d)] = cubeOrigin
-    }
+    origins[getKey(d)] = cubeOrigin
+
     mouseMove()
   }
 }
@@ -282,10 +278,6 @@ export function toggleFlip () {
 export function setFlip (value) {
   flip = value
 }
-export function toggleSpin () {
-  spin = !spin
-}
-
 export function setType (type) {
   selected.type = type
 }

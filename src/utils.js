@@ -24,3 +24,7 @@ export function frontFirst (b, a) {
 export function backFirst (b, a) {
   return frontFirst(a, b)
 }
+
+export function toEven (a) {
+  return (a % 2) ? a + 1 : a
+}
