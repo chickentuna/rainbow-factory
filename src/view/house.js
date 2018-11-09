@@ -1,48 +1,53 @@
-import { toEven } from '../utils.js'
-
+import { CUBE_SIZE } from '../constants.js'
+import { backFirst } from '../utils.js'
 /* global obelisk */
 
-export function drawHouse (cube, scale, colorPattern, view, rotation = 0) {
-  // entrance width and height in %
-  const w = 0.5
-  const h = 0.5
+export function drawHouse ({ cube, colorPattern, view, rotation = 0 }) {
+  let direction = cube.building.direction
 
-  // bases is entrance facing SE, no rotation
+  // basis is entrance facing SE, no rotation
   const composition = [
     {
       primitive: 'cube',
       pos: { x: 0, y: 0, z: 0 },
-      size: { x: 1, y: 0.5 - w / 2, z: 1 }
+      size: { x: CUBE_SIZE, y: 12, z: CUBE_SIZE }
     },
     {
       primitive: 'cube',
-      pos: { x: 0, y: 0.5 - w / 2, z: h },
-      size: { x: 1, y: 0.5 + w / 2, z: 1 - h }
+      pos: { x: 0, y: 10, z: 24 },
+      size: { x: CUBE_SIZE, y: 36, z: CUBE_SIZE - 24 }
     },
     {
       primitive: 'cube',
-      pos: { x: 0, y: 0.5 + w / 2, z: 0 },
-      size: { x: 1, y: 0.5 - w / 2, z: 1 }
+      pos: { x: 0, y: 34, z: 0 },
+      size: { x: CUBE_SIZE, y: 14, z: CUBE_SIZE }
     }
-
   ]
 
   let origin
-  for (let piece of composition) {
+  for (let piece of composition.sort((a, b) => backFirst(a.pos, b.pos))) {
     if (piece.primitive === 'cube') {
       let dimension = new obelisk.CubeDimension(
-        toEven(Math.round(piece.size.x * scale)),
-        toEven(Math.round(piece.size.y * scale)),
-        toEven(Math.round(piece.size.z * scale))
+        piece.size.x,
+        piece.size.y,
+        piece.size.z
       )
-      let border = 1
+      let border = false
       let color = new obelisk.CubeColor().getByHorizontalColor(colorPattern)
+
+      let x = piece.pos.x
+      let y = piece.pos.y
+      let z = piece.pos.z
+
+      const snap = 2
+
       let p3d = new obelisk.Point3D(
-        Math.round((cube.x + piece.pos.x) * (scale - 2)),
-        Math.round((piece.pos.y + cube.y) * (scale - 2)),
-        Math.round((piece.pos.z + cube.z) * (scale - 2)))
+        Math.round(x + (cube.x) * (CUBE_SIZE - snap)),
+        Math.round(y + (cube.y) * (CUBE_SIZE - snap)),
+        Math.round(z + (cube.z) * (CUBE_SIZE)))
+
       const tile = new obelisk.Cube(dimension, color, border)
-      origin = view.renderObject(tile, p3d)
+      origin = view.renderObject(tile, p3d) // TODO calculate a la mano
     }
   }
 

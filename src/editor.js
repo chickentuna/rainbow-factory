@@ -1,9 +1,9 @@
 import { frontFirst, backFirst } from './utils.js'
-import { WIDTH, HEIGHT } from './constants.js'
+import { WIDTH, HEIGHT, CUBE_SIZE } from './constants.js'
 import { getMousePos } from './mouse.js'
 import { initControls } from './editor-controls.js'
 import { Cube, Source } from './model/Cube.js'
-import * as Direction from './model/directions.js'
+import { SE, NW, SW, NE } from './model/directions.js'
 import { drawHouse } from './view/house.js'
 
 // TODO: an import for types in model/
@@ -11,13 +11,12 @@ import { drawHouse } from './view/house.js'
 /* global requestAnimationFrame window localStorage obelisk $ */
 
 const urlParams = new URLSearchParams(window.location.search)
-let scale = +urlParams.get('scale') || 20
 let clear = urlParams.has('clear')
 let rotation = +urlParams.get('rotation') || 0
 let selected = {
   type: 'block',
   color: 0xFF,
-  direction: Direction.SE
+  direction: SE
 }
 
 if (clear) {
@@ -38,8 +37,8 @@ let flip = false
 let canvasSelector = $('#canvasZone').append('<canvas width="' + WIDTH + '" height="' + HEIGHT + '"></canvas>')
 let canvas = canvasSelector.find('canvas')[0]
 
-const CUBE_HEIGHT = scale * 2 - 1
-const CUBE_WIDTH = scale * 2 - 2
+const CUBE_HEIGHT = CUBE_SIZE * 2 - 1
+const CUBE_WIDTH = CUBE_SIZE * 2 - 2
 
 canvas.addEventListener('contextmenu', (e) => {
   mouseClickRight()
@@ -163,19 +162,24 @@ function mouseMove (x = prevX, y = prevY) {
   prevY = y
 }
 
-function transform ({ x, y, z }) {
-  let result = { x, y, z }
-  if (rotation === 1) {
-    result.x = y
-    result.y = -x
-  } else if (rotation === 2) {
-    result.x = -x
-    result.y = -y
-  } else if (rotation === 3) {
-    result.x = -y
-    result.y = x
+const dirList = [SE, SW, NW, NE]
+export function transform (cube) {
+  let result = new Cube(cube)
+  if (cube.building && cube.building.type === 'source') {
+    let dir = dirList[(dirList.indexOf(cube.building.direction) + rotation) % 4]
+    result.building = new Source(dir, cube.building.color)
   }
-  result.z = flip ? -z : z
+  if (rotation === 1) {
+    result.x = cube.y
+    result.y = -cube.x
+  } else if (rotation === 2) {
+    result.x = -cube.x
+    result.y = -cube.y
+  } else if (rotation === 3) {
+    result.x = -cube.y
+    result.y = cube.x
+  }
+  result.z = flip ? -cube.z : cube.z
   return result
 }
 
@@ -202,16 +206,18 @@ function redraw () {
     let cube = transform(d)
     let cubeOrigin
     if (d.building && d.building.type === 'source') {
-      cubeOrigin = drawHouse(cube,
-        scale,
-        obelisk.ColorPattern.YELLOW,
-        pixelView
-      )
+      cubeOrigin = drawHouse({
+        cube: cube,
+        colorPattern: obelisk.ColorPattern.YELLOW,
+        view: pixelView
+      })
     } else {
-      let dimension = new obelisk.CubeDimension(scale, scale, scale)
+      let dimension = new obelisk.CubeDimension(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE)
       let color = new obelisk.CubeColor().getByHorizontalColor(obelisk.ColorPattern.BLUE)
+      // color = new obelisk.CubeColor().getByHorizontalColor(obelisk.ColorPattern.getRandomComfortableColor())
+
       let border = false
-      let p3d = new obelisk.Point3D(cube.x * (scale - 2), cube.y * (scale - 2), cube.z * (scale - 2))
+      let p3d = new obelisk.Point3D(cube.x * (CUBE_SIZE - 2), cube.y * (CUBE_SIZE - 2), cube.z * CUBE_SIZE)
       const tile = new obelisk.Cube(dimension, color, border)
       cubeOrigin = pixelView.renderObject(tile, p3d)
     }
@@ -221,18 +227,18 @@ function redraw () {
       let border = false
 
       if (hover.face === 'right') {
-        let dimension = new obelisk.SideYDimension(scale, scale)
-        let p3d = new obelisk.Point3D((cube.x + 1) * (scale - 2), cube.y * (scale - 2), cube.z * (scale - 2))
+        let dimension = new obelisk.SideYDimension(CUBE_SIZE, CUBE_SIZE)
+        let p3d = new obelisk.Point3D((cube.x + 1) * (CUBE_SIZE - 2), cube.y * (CUBE_SIZE - 2), cube.z * (CUBE_SIZE))
         let face = new obelisk.SideY(dimension, color, border)
         pixelView.renderObject(face, p3d)
       } else if (hover.face === 'left') {
-        let dimension = new obelisk.SideXDimension(scale, scale)
-        let p3d = new obelisk.Point3D((cube.x) * (scale - 2), (cube.y + 1) * (scale - 2), cube.z * (scale - 2))
+        let dimension = new obelisk.SideXDimension(CUBE_SIZE, CUBE_SIZE)
+        let p3d = new obelisk.Point3D((cube.x) * (CUBE_SIZE - 2), (cube.y + 1) * (CUBE_SIZE - 2), cube.z * (CUBE_SIZE))
         let face = new obelisk.SideX(dimension, color, border)
         pixelView.renderObject(face, p3d)
       } else {
-        let dimension = new obelisk.BrickDimension(scale, scale)
-        let p3d = new obelisk.Point3D(cube.x * (scale - 2), cube.y * (scale - 2), (cube.z + 1) * (scale - 2) + 2)
+        let dimension = new obelisk.BrickDimension(CUBE_SIZE, CUBE_SIZE)
+        let p3d = new obelisk.Point3D(cube.x * (CUBE_SIZE - 2), cube.y * (CUBE_SIZE - 2), (cube.z + 1) * (CUBE_SIZE) + 1)
         let face = new obelisk.Brick(dimension, color, border)
         pixelView.renderObject(face, p3d)
       }
