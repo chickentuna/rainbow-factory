@@ -1,4 +1,3 @@
-
 export const mountainPastel = [
   0x293844,
   0x404640,
