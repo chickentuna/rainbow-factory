@@ -1,3 +1,4 @@
+import { load } from './loader.js'
 import { frontFirst, backFirst } from './utils.js'
 import { WIDTH, HEIGHT, CUBE_SIZE } from './constants.js'
 import { getMousePos } from './mouse.js'
@@ -6,9 +7,18 @@ import { Cube, Source } from './model/Cube.js'
 import { SE, NW, SW, NE } from './model/directions.js'
 import { drawHouse } from './view/house.js'
 
-// TODO: an import for types in model/
-
 /* global requestAnimationFrame window localStorage $ */
+
+let data
+if (localStorage.data) {
+  data = parse(localStorage.data)
+} else {
+  data = [new Cube({ x: 0, y: 0, z: 0, building: new Source() })]
+}
+
+const origins = {}
+const CUBE_HEIGHT = CUBE_SIZE * 2 - 1
+const CUBE_WIDTH = CUBE_SIZE * 2 - 2
 
 const urlParams = new URLSearchParams(window.location.search)
 let clear = urlParams.has('clear')
@@ -22,37 +32,46 @@ let selected = {
 if (clear) {
   delete localStorage.data
 }
-let prevX = 0; let prevY = 0
-let data
-if (localStorage.data) {
-  data = parse(localStorage.data)
-} else {
-  data = [new Cube({ x: 0, y: 0, z: 0, building: new Source() })]
-}
-const origins = {}
-
 let hover = null
 let dataSet = {}
 let flip = false
 let canvasSelector = $('#canvasZone').append('<canvas width="' + WIDTH + '" height="' + HEIGHT + '"></canvas>')
 let canvas = canvasSelector.find('canvas')[0]
+let prevX = 0; let prevY = 0
 
-const CUBE_HEIGHT = CUBE_SIZE * 2 - 1
-const CUBE_WIDTH = CUBE_SIZE * 2 - 2
+load().then(init)
 
-canvas.addEventListener('contextmenu', (e) => {
-  mouseClickRight()
-  e.preventDefault()
-})
-canvas.addEventListener('mousemove', function (evt) {
-  let mousePos = getMousePos(canvas, evt)
-  mouseMove(mousePos.x, mousePos.y)
-}, false)
-canvas.addEventListener('click', function (evt) {
-  mouseClickLeft()
-})
+let app
 
-computeDataSet()
+function init() {
+  canvas.addEventListener('contextmenu', (e) => {
+    mouseClickRight()
+    e.preventDefault()
+  })
+  canvas.addEventListener('mousemove', function (evt) {
+    let mousePos = getMousePos(canvas, evt)
+    mouseMove(mousePos.x, mousePos.y)
+  }, false)
+  canvas.addEventListener('click', function (evt) {
+    mouseClickLeft()
+  })
+
+  computeDataSet()
+
+  app = new PIXI.Application({
+    width: WIDTH,
+    height: HEIGHT,
+    resolution: 1,
+    backgroundColor: 0xBAAB88,
+    view: canvas
+  })
+  app.view.addEventListener('contextmenu', (e) => { e.preventDefault() })
+  requestAnimationFrame(animate)
+  initControls()
+
+  initStage()
+}
+
 
 function getKey(cube) {
   return cube.x + ' ' + cube.y + ' ' + cube.z
@@ -196,8 +215,8 @@ function hoveringOver(cube) {
 }
 
 
-function redraw() {
-
+function initStage() {
+  
   for (let d of data.sort((a, b) => backFirst(transform(a), transform(b)))) {
     let cube = transform(d)
     let cubeOrigin
@@ -207,9 +226,9 @@ function redraw() {
       })
     } else {
       let color = 0xeeffbb
-
+      let sprite = PIXI.Sprite.fromFrame('voxelTile_01')
       let p3d = { x: cube.x * (CUBE_SIZE - 2), y: cube.y * (CUBE_SIZE - 2), z: cube.z * CUBE_SIZE }
-      // draw cube
+      app.stage.addChild(sprite)
     }
     if (hoveringOver(d)) {
       const red = 0xFF0000
@@ -226,22 +245,16 @@ function redraw() {
   }
 }
 
-var app = new PIXI.Application({
-  width: WIDTH,
-  height: HEIGHT,
-  resolution: 1,
-  backgroundColor: 0xBAAB88,
-  view: canvas
-})
-app.view.addEventListener('contextmenu', (e) => { e.preventDefault() })
+
 
 
 function animate() {
-  redraw()
+  
   app.render()
   setTimeout(() => requestAnimationFrame(animate), 30)
 }
-requestAnimationFrame(animate)
+
+
 
 export function parse(json) {
   const result = []
@@ -281,4 +294,4 @@ export function setColor(color) {
   selected.color = color
 }
 
-initControls()
+
